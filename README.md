@@ -106,39 +106,55 @@ This ensures:
 
 ## Repository Structure
 
+Here’s your structure cleaned up into a **Markdown-friendly, properly formatted directory tree** (ready for README or docs):
+
+```markdown id="repo-structure-md"
+## Repository Structure
+
+```
+
 immutable-event-ledger-gcp/
-│
 ├── README.md
 │
 ├── docs/
-│ ├── architecture-overview.md
-│ ├── adr-001-event-driven-ledger.md
-│ ├── adr-002-domain-separation.md
-│ └── architecture-diagram.png
+│   ├── architecture-overview.md
+│   ├── adr-001-event-driven-ledger.md
+│   ├── adr-002-domain-separation.md
+│   └── architecture-diagram.png
 │
 ├── sql/
-│ ├── 001_create_ledger_tables.sql
-│ ├── 002_create_events_table.sql
-│ ├── 003_partitioning_strategy.sql
-│ └── sample_queries.sql
+│   ├── 001_create_ledger_tables.sql
+│   ├── 002_create_events_table.sql
+│   ├── 003_partitioning_strategy.sql
+│   └── sample_queries.sql
 │
 ├── services/
-│ ├── ingestion_service.py
-│ ├── ledger_processor.py
-│ └── outbox_worker.py
+│   ├── ingestion_service.py
+│   ├── ledger_processor.py
+│   └── outbox_worker.py
 │
 ├── schemas/
-│ ├── ledger_event_schema.json
-│ └── operational_event_schema.json
+│   ├── ledger_event_schema.json
+│   └── operational_event_schema.json
 │
 ├── docker/
-│ └── Dockerfile
+│   └── Dockerfile
 │
 └── examples/
 ├── sample_event.json
 └── example_flow.md
 
+```
 
+
+### Notes
+
+- **docs/** → Architecture decisions and system design documentation  
+- **sql/** → BigQuery schema definitions and queries  
+- **services/** → Core processing services (ingestion, ledger processing, async workers)  
+- **schemas/** → JSON schema contracts for events  
+- **docker/** → Containerization setup for deployment  
+- **examples/** → Sample data and workflow demonstrations  
 
 ---
 
