@@ -3,201 +3,244 @@
 
 ---
 
-## 1. Purpose
+## 1. Executive Summary
 
-This project demonstrates the design of an immutable, event-driven financial ledger system built on Google Cloud Platform (GCP).
+This project demonstrates the architecture of an immutable, event-driven financial ledger platform built on Google Cloud Platform (GCP).
 
-The goal is to provide:
+The system is designed to model enterprise-grade financial integrity principles in a cloud-native environment. It emphasizes:
 
-- Strong financial integrity
-- Full traceability of operational events
-- No destructive updates
-- No financial record rewriting
-- Asynchronous processing
-- Scalable, partitioned architecture
+- Immutability
+- Double-entry accounting discipline
+- Domain separation
+- Asynchronous event processing
+- Deterministic reconciliation
+- Multi-tenant scalability
+- Governance-first architecture
 
-This architecture is designed to reflect enterprise-grade accounting discipline in cloud-native systems.
+The objective is to showcase how modern distributed systems can preserve financial truth without destructive updates while remaining horizontally scalable and operationally efficient.
 
 ---
 
 ## 2. Architectural Principles
 
-The system is built on the following principles:
+The platform is built on the following non-negotiable principles:
 
-### 🔒 Immutability
+### 2.1 Immutability First
 
 - Operational events are append-only
 - Financial ledger entries are never updated or deleted
 - Corrections are implemented via compensating events
+- Historical truth is preserved permanently
 
-### ⚡ Event-Driven Processing
+### 2.2 Event-Driven Processing
 
 - All business actions emit events
 - Events are processed asynchronously
-- At-least-once delivery with idempotency
+- At-least-once delivery is supported with idempotency safeguards
+- No direct mutation of financial state is allowed
 
-### 📊 Double-Entry Discipline
+### 2.3 Double-Entry Discipline
 
-- Every financial transaction generates balanced debit/credit entries
+- Every financial transaction produces balanced debit and credit entries
 - Ledger integrity is enforced at processing time
+- No transaction can produce unbalanced financial state
 
-### 🧩 Domain Separation
+### 2.4 Domain Separation
 
-- Operational domain (business activity)
-- Financial ledger domain (accounting truth)
-- Processing domain (event handling logic)
+The system enforces strict logical separation between:
+
+| Domain | Responsibility |
+|---|---|
+| Operational Domain | Business activity truth |
+| Ledger Domain | Accounting truth |
+| Processing Domain | Event transformation & validation |
+| Governance Domain | Access control & policy enforcement |
+
+Each domain evolves independently without compromising integrity.
+
+### 2.5 Multi-Tenant Scalability
+
+- Shared tables with strict tenant isolation
+- Partitioning by time for performance optimisation
+- Clustering by tenant identifier for cost efficiency
+- Row-level security for governance enforcement
 
 ---
 
 ## 3. High-Level Architecture
 
+The system follows an event-sourcing inspired architecture:
+
+1. Operational Event Ingestion
+2. Outbox Pattern Emission
+3. Asynchronous Ledger Processing
+4. Immutable Ledger Persistence
+5. Reconciliation & Monitoring
+
 ```mermaid
-flowchart LR
-    A[Operational Event] --> B[Events Table]
-    B --> C[Outbox Worker]
-    C --> D[Ledger Processor]
-    D --> E[Ledger Entries Table]
-    D --> F[BigQuery Partitioned Tables]
+flowchart TD
+    A([🏢 Operational Event]) --> B[Ingestion Service]
+    B --> C[(Event Store\nAppend-Only)]
+    C --> D[Outbox Worker]
+    D --> E[Ledger Processor]
+    E --> F[(Ledger Entries\nImmutable)]
+    E --> G[(BigQuery\nPartitioned Tables)]
+    F --> H[Reconciliation\n& Monitoring]
+    G --> H
+
+    style A fill:#1565C0,color:#fff,stroke:#0d47a1
+    style B fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style C fill:#E65100,color:#fff,stroke:#BF360C
+    style D fill:#2E7D32,color:#fff,stroke:#1B5E20
+    style E fill:#6A1B9A,color:#fff,stroke:#4A148C
+    style F fill:#E65100,color:#fff,stroke:#BF360C
+    style G fill:#006064,color:#fff,stroke:#004D40
+    style H fill:#283593,color:#fff,stroke:#1A237E
 ```
 
-This shows:
-
-- Operational event ingestion
-- Event storage
-- Outbox pattern
-- Ledger processing
-- Final ledger persistence
+All financial mutations occur exclusively through the Ledger Processor.
 
 ---
 
 ## 4. Core Components
 
-### 4.1 Events Table
+### 4.1 Ingestion Service
 
-Stores immutable operational events.
+- Accepts operational events
+- Validates schema compliance
+- Persists append-only event records
+- Emits outbox messages
 
-Characteristics:
+> This layer performs no financial mutation.
 
-- Append-only
-- Versioned
-- Partitioned by `processed_at`
-- Clustered by `tenant_id` (if multi-tenant)
+### 4.2 Event Store
 
-### 4.2 Ledger Entries Table
-
-Stores double-entry accounting records.
-
-Characteristics:
-
-- Immutable
-- Balanced entries enforced
-- Partitioned by accounting timestamp
-- Suitable for financial reporting
+- Append-only storage of operational events
+- Schema-versioned payloads
+- Immutable by design
+- Serves as system source-of-truth for activity history
 
 ### 4.3 Outbox Worker
 
-Implements the Outbox Pattern:
-
-- Polls unprocessed events
-- Ensures idempotent processing
-- Publishes to ledger processor
-- Marks event as processed
-
-**Purpose:** Guarantees reliable asynchronous processing.
+- Polls pending events
+- Publishes them for ledger processing
+- Ensures at-least-once delivery semantics
+- Maintains idempotency guarantees
 
 ### 4.4 Ledger Processor
 
-Responsible for:
+- Consumes operational events
+- Applies double-entry logic
+- Generates immutable ledger entries
+- Enforces financial balancing rules
+- Rejects invalid transactions
 
-- Validating event structure
-- Generating debit/credit entries
-- Ensuring accounting balance
-- Writing immutable ledger rows
+> No ledger entry is ever updated after insertion.
 
----
-
-## 5. Data Partitioning Strategy
-
-BigQuery tables are:
+### 4.5 Ledger Storage (BigQuery)
 
 - Partitioned by `processed_at`
 - Clustered by `tenant_id`
-- Optimized for:
-  - Time-based reporting
-  - Cost-efficient scanning
-  - Audit trail reconstruction
+- Immutable append-only structure
+- Optimised for analytical and reconciliation workloads
 
-This enables:
+### 4.6 Reconciliation & Monitoring
 
-- Efficient historical queries
-- Financial period reporting
-- Regulatory auditing support
+- Compares operational events vs ledger state
+- Detects divergence
+- Surfaces anomalies
+- Ensures capital integrity
 
----
-
-## 6. Idempotency Strategy
-
-Each event includes:
-
-- `event_id` (UUID)
-- `event_version`
-- Unique processing key
-
-The ledger processor:
-
-- Checks if event already processed
-- Prevents duplicate financial entries
-- Ensures safe retries
+> Reconciliation is automated and continuous.
 
 ---
 
-## 7. Failure Handling
+## 5. Data Model Strategy
 
-The system supports:
+### 5.1 Event Envelope
 
-- Retry mechanisms
-- Dead-letter handling (conceptual)
-- Non-destructive compensation entries
+All events follow a canonical envelope:
 
-No event is deleted. Failures are traceable.
+| Field | Type | Description |
+|---|---|---|
+| `event_id` | UUID | Unique event identifier |
+| `event_type` | String | Business event classification |
+| `tenant_id` | String | Tenant isolation key |
+| `occurred_at` | Timestamp | When the business action happened |
+| `processed_at` | Timestamp | When the event was processed |
+| `schema_version` | Integer | Payload schema version |
+| `payload` | JSON | Event-specific data |
+
+Event versioning is supported from day one.
+
+### 5.2 Ledger Model
+
+Ledger entries contain:
+
+| Field | Type | Description |
+|---|---|---|
+| `ledger_event_id` | UUID | Unique ledger entry identifier |
+| `original_event_id` | UUID | Reference to source event |
+| `tenant_id` | String | Tenant isolation key |
+| `account_id` | String | Chart of accounts reference |
+| `debit_amount` | Decimal | Debit side of entry |
+| `credit_amount` | Decimal | Credit side of entry |
+| `currency` | String | ISO 4217 currency code |
+| `processed_at` | Timestamp | Immutable processing timestamp |
+
+Each transaction must satisfy:
+
+```
+SUM(debit) = SUM(credit)
+```
 
 ---
 
-## 8. Why This Architecture Matters
+## 6. Partitioning & Performance Strategy
 
-Traditional CRUD-based systems allow:
+To optimise cost and performance:
 
-- Record overwrites
-- Silent corrections
-- Hidden financial drift
+- Tables are partitioned by `processed_at`
+- Tables are clustered by `tenant_id`
+- Queries are time-bounded whenever possible
+- Analytical workloads are isolated from ingestion workloads
 
-This architecture enforces:
-
-- Financial truth preservation
-- Auditability
-- Traceability
-- Governance-ready data structures
-
-It is suitable for:
-
-- Payment systems
-- Financial platforms
-- Multi-tenant SaaS ledgers
-- Compliance-heavy environments
+This approach minimises scanned bytes and enforces predictable performance.
 
 ---
 
-## 9. Scalability Considerations
+## 7. Governance & Security
 
-The architecture supports:
+- Row-Level Security (RLS) enforced per tenant
+- Service-to-service authentication via identity tokens
+- No direct write access to ledger tables
+- All mutations pass through controlled backend services
+- Immutable logs for audit compliance
 
-- Horizontal scaling via Cloud Run
-- Partitioned BigQuery tables
-- Asynchronous processing
-- Multi-tenant extension
+> The system assumes a zero-trust internal architecture.
 
-It can evolve into:
+---
 
-- Real-time streaming via Pub/Sub
-- Reconciliation microservices
-- Governance audit services
+## 8. Failure Handling & Idempotency
+
+The system tolerates distributed failures through:
+
+- At-least-once delivery semantics
+- Idempotent ledger processing
+- Retry-safe operations
+- Explicit failure states
+- Compensating events instead of destructive edits
+
+> Duplicate processing does not produce duplicate financial impact.
+
+---
+
+## 9. Design Trade-Offs
+
+| Decision | Rationale |
+|---|---|
+| Append-only ledger | Guarantees financial truth preservation |
+| Asynchronous processing | Enables scalability & resilience |
+| Shared multi-tenant tables | Cost-efficient SaaS scalability |
+| Compensating events | Preserves historical auditability |
+| No deletes | Prevents historical corruption |
