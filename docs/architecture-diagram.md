@@ -1,3 +1,6 @@
+# Enterprise Event-Driven Platform — Architecture Flowchart
+
+```mermaid
 flowchart TB
     %% ==============================
     %% CLIENT & ENTRY LAYER
@@ -93,3 +96,4 @@ flowchart TB
     E1 --- G2
     E1 --- G3
     E1 --- G4
+```
