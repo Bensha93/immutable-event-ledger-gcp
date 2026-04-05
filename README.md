@@ -109,14 +109,17 @@ This ensures:
 Here’s your structure cleaned up into a **Markdown-friendly, properly formatted directory tree** (ready for README or docs):
 
 ```markdown id="repo-structure-md"
-## Repository Structure
 
 ```
 
 immutable-event-ledger-gcp/
+
 ├── README.md
+
 │
+
 ├── docs/
+
 │   ├── architecture-overview.md
 │   ├── adr-001-event-driven-ledger.md
 │   ├── adr-002-domain-separation.md
